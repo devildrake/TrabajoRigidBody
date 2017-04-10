@@ -4,11 +4,17 @@
 #include <cstdio>
 
 //Boolean variables allow to show/hide the primitives
-bool renderSphere = true;
+bool renderSphere = false;
 bool renderCapsule = false;
 bool renderParticles = false;
-bool renderCloth = true;
-
+bool renderCloth = false;
+bool renderBox = true;
+bool renderCube = true;
+namespace Box {
+	extern void setupCube();
+	extern void cleanupCube();
+	extern void drawCube();
+}
 namespace Sphere {
 	extern void setupSphere(glm::vec3 pos = glm::vec3(0.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
@@ -35,17 +41,28 @@ namespace ClothMesh {
 	extern void drawClothMesh();
 }
 
+namespace Cube {
+	extern void setupCube();
+	extern void cleanupCube();
+	extern void drawCube();
+}
+
 void setupPrims() {
 	Sphere::setupSphere();
 	Capsule::setupCapsule();
 	LilSpheres::setupParticles(LilSpheres::maxParticles);
 	ClothMesh::setupClothMesh();
+	Box::setupCube();
+	Cube::setupCube();
 }
+
 void cleanupPrims() {
+	Box::cleanupCube();
 	Sphere::cleanupSphere();
 	Capsule::cleanupCapsule();
 	LilSpheres::cleanupParticles();
 	ClothMesh::cleanupClothMesh();
+	Cube::cleanupCube();
 }
 
 void renderPrims() {
@@ -60,4 +77,12 @@ void renderPrims() {
 	
 	if (renderCloth)
 		ClothMesh::drawClothMesh();
+
+	if (renderBox) {
+		Box::drawCube();
+	}
+
+	if (renderCube) {
+		Cube::drawCube();
+	}
 }

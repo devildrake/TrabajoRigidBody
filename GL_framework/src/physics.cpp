@@ -1,6 +1,10 @@
 #include <imgui\imgui.h>
 #include <imgui\imgui_impl_glfw_gl3.h>
-
+namespace Box {
+	extern void setupCube();
+	extern void cleanupCube();
+	extern void drawCube();
+}
 bool show_test_window = false;
 void GUI() {
 	{	//FrameRate
@@ -20,6 +24,7 @@ void PhysicsInit() {
 	//TODO
 }
 void PhysicsUpdate(float dt) {
+	Box::drawCube();
 	//TODO
 }
 void PhysicsCleanup() {

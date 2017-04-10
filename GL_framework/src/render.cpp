@@ -7,6 +7,7 @@
 #include "GL_framework.h"
 
 /////////fw decl
+
 namespace ImGui {
 	void Render();
 }
@@ -814,4 +815,139 @@ void drawClothMesh() {
 	glBindVertexArray(0);
 	glDisable(GL_PRIMITIVE_RESTART);
 }
+}
+
+namespace Cube {
+	GLuint cubeShaders[2];
+	GLuint cubeVAO, cubeVBO;
+	GLuint cubeProgram;
+
+	const char* cube_fragShader =
+		"#version 330 core\n\
+	// Ouput data\n\
+	out vec4 color;\n\
+	void main() {\n\
+		color = vec4(1,0,0,1);\n\
+	}";
+
+	const char* cube_vertShader =
+
+		"#version 330 core\n\
+in vec3 in_Position;\n\
+uniform mat4 mvpMat;\n\
+	void main() {\n\
+	gl_Position = mvpMat * vec4(in_Position, 1.0);\n\
+	}";
+
+
+
+	GLfloat VertexBufferObject[] = {
+		-0.5f, -0.5f, -0.5f,
+		0.5f , -0.5f, -0.5f,
+		0.5f ,  0.5f, -0.5f,
+		0.5f ,  0.5f, -0.5f,
+		-0.5f,  0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+
+		-0.5f, -0.5f,  0.5f,
+		0.5f , -0.5f,  0.5f,
+		0.5f ,  0.5f,  0.5f,
+		0.5f ,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+		-0.5f, -0.5f,  0.5f,
+
+		-0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+
+		0.5f ,  0.5f,  0.5f,
+		0.5f ,  0.5f, -0.5f,
+		0.5f , -0.5f, -0.5f,
+		0.5f , -0.5f, -0.5f,
+		0.5f , -0.5f,  0.5f,
+		0.5f ,  0.5f,  0.5f,
+
+		-0.5f, -0.5f, -0.5f,
+		0.5f , -0.5f, -0.5f,
+		0.5f , -0.5f,  0.5f,
+		0.5f , -0.5f,  0.5f,
+		-0.5f, -0.5f,  0.5f,
+		-0.5f, -0.5f, -0.5f,
+
+		-0.5f,  0.5f, -0.5f,
+		0.5f ,  0.5f, -0.5f,
+		0.5f ,  0.5f,  0.5f,
+		0.5f ,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f, -0.5f,
+	};
+
+
+
+	void setupCube() {
+		glGenVertexArrays(1, &cubeVAO);
+		glBindVertexArray(cubeVAO); {
+
+			glGenBuffers(1, &cubeVBO);
+			//Se enlaza el buffer para poder usarlo
+			glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+			//Se pasan los datos
+			glBufferData(GL_ARRAY_BUFFER, sizeof(VertexBufferObject), VertexBufferObject, GL_DYNAMIC_DRAW);
+
+			//Propiedades
+
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GL_FLOAT), (GLvoid*)0);
+			glEnableVertexAttribArray(0);
+
+			//LIMPIA LOS BUFFERS DE VERTICES
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		}glBindVertexArray(0);
+
+
+		cubeShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cube_vertShader");
+		cubeShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cube_fragShader");
+
+		cubeProgram = glCreateProgram();
+		glAttachShader(cubeProgram, cubeShaders[0]);
+		glAttachShader(cubeProgram, cubeShaders[1]);
+		glBindAttribLocation(cubeProgram, 0, "in_Position");
+		linkProgram(cubeProgram);
+
+
+
+	}
+
+	void cleanupCube() {
+		glDeleteBuffers(1, &cubeVBO);
+		glDeleteVertexArrays(1, &cubeVAO);
+		glDeleteProgram(cubeProgram);
+		glDeleteShader(cubeShaders[0]);
+		glDeleteShader(cubeShaders[1]);
+	}
+
+	void drawCube() {
+		//glBindVertexArray(cubeVAO);
+		//glUseProgram(cubeProgram);
+		//
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		//glUseProgram(0);
+		//glBindVertexArray(0);
+
+		glBindVertexArray(cubeVAO);
+		glUseProgram(cubeProgram);
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(_MVP));
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
+
+		glUseProgram(0);
+		glBindVertexArray(0);
+
+	}
 }
