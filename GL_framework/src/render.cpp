@@ -36,7 +36,6 @@ namespace {
 	glm::mat4 _MVP;
 	glm::mat4 _inv_modelview;
 	glm::vec4 _cameraPoint;
-
 	struct prevMouse {
 		float lastx, lasty;
 		MouseEvent::Button button = MouseEvent::Button::None;
@@ -818,37 +817,45 @@ void drawClothMesh() {
 }
 
 namespace Cube {
+	glm::mat4 modelMat;
 	GLuint cubeShaders[2];
 	GLuint cubeVAO, cubeVBO[2];
 	GLuint cubeProgram;
 
 	const char* cube_fragShader =
 		"#version 330 core\n\
+	in vec3 _color;\n\
 	out vec4 color;\n\
 	void main() {\n\
-		color = vec4(1,0,0,1);\n\
+		//color = vec4(1,0,0,1);\n\
+		color = vec4(_color.xyz,1);\n\
 	}";
 
 	const char* cube_vertShader =
 
 		"#version 330 core\n\
 	in vec3 in_Position;\n\
+	in vec3 in_Color;\n\
+	out vec3 _color;\n\
 	uniform mat4 mvpMat;\n\
+	uniform mat4 modelMat;\n\
 	void main() {\n\
-	gl_Position = mvpMat * vec4(in_Position, 1.0);\n\
+	_color = in_Color;\n\
+	gl_Position = mvpMat *modelMat* vec4(in_Position, 1.0);\n\
 	}";
 
 
 	float cubeVerts[] = {
 		//-5,0,-5 -- 5, 10, 5
-		-0.5f,  0.f, -0.5f,
-		0.5f,  0.f, -0.5f,
-		0.5f,  0.f,  0.5f,
-		-0.5f,  0.f,  0.5f,
-		-0.5f, 1, -0.5f,
-		0.5f, 1.f, -0.5f,
-		0.5f, 1, 0.5f,
-		-0.5f, 1, 0.5f,
+		-0.5f,  -0.5f, -0.5f, 1,0,1,
+		0.5f, - 0.5f, -0.5f, 1,0,0,
+		0.5f, - 0.5f,  0.5f, 0,0,1,
+		-0.5f, - 0.5f,  0.5f, 0,1,0,
+		-0.5f, 0.5f, -0.5f, 1,1,0,
+		0.5f, 0.5f, -0.5f, 0,1,1,
+		0.5f, 0.5f, 0.5f, 1,0.5f,0.5f,
+		-0.5f, 0.5f, 0.5f, 0,0.5f,1
+
 	};
 	GLubyte cubeIdx[] = {
 		1,3,0, //SWALLOW
@@ -885,9 +892,13 @@ namespace Cube {
 		glGenBuffers(2, cubeVBO);
 
 		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO[0]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 36, cubeVerts, GL_STATIC_DRAW);
-		glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 72, cubeVerts, GL_STATIC_DRAW);
+		
+		glVertexAttribPointer((GLfloat)0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GLfloat), (GLvoid*)0);
+		glVertexAttribPointer((GLfloat)1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GLfloat), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+
 		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeVBO[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte) * 36, cubeIdx, GL_STATIC_DRAW);
@@ -904,6 +915,7 @@ namespace Cube {
 		glAttachShader(cubeProgram, cubeShaders[0]);
 		glAttachShader(cubeProgram, cubeShaders[1]);
 		glBindAttribLocation(cubeProgram, 0, "in_Position");
+		glBindAttribLocation(cubeProgram, 1, "in_Color");
 		linkProgram(cubeProgram);
 
 	}
@@ -917,9 +929,12 @@ namespace Cube {
 	}
 
 	void drawCube() {
+
 		glBindVertexArray(cubeVAO);
 		glUseProgram(cubeProgram);
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(_MVP));
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "modelMat"), 1, GL_FALSE, glm::value_ptr(modelMat));
+
 		//FLOOR
 		//glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.6f, 0.6f, 0.6f, 1.f);
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, 0);
