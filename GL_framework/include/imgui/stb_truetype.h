@@ -462,7 +462,7 @@ typedef struct
 {
    unsigned char *data;
    int cursor;
-   int size;
+   int escalado;
 } stbtt__buf;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -983,22 +983,22 @@ typedef int stbtt__test_oversample_pow2[(STBTT_MAX_OVERSAMPLE & (STBTT_MAX_OVERS
 
 static stbtt_uint8 stbtt__buf_get8(stbtt__buf *b)
 {
-   if (b->cursor >= b->size)
+   if (b->cursor >= b->escalado)
       return 0;
    return b->data[b->cursor++];
 }
 
 static stbtt_uint8 stbtt__buf_peek8(stbtt__buf *b)
 {
-   if (b->cursor >= b->size)
+   if (b->cursor >= b->escalado)
       return 0;
    return b->data[b->cursor];
 }
 
 static void stbtt__buf_seek(stbtt__buf *b, int o)
 {
-   STBTT_assert(!(o > b->size || o < 0));
-   b->cursor = (o > b->size || o < 0) ? b->size : o;
+   STBTT_assert(!(o > b->escalado || o < 0));
+   b->cursor = (o > b->escalado || o < 0) ? b->escalado : o;
 }
 
 static void stbtt__buf_skip(stbtt__buf *b, int o)
@@ -1016,12 +1016,12 @@ static stbtt_uint32 stbtt__buf_get(stbtt__buf *b, int n)
    return v;
 }
 
-static stbtt__buf stbtt__new_buf(const void *p, size_t size)
+static stbtt__buf stbtt__new_buf(const void *p, size_t escalado)
 {
    stbtt__buf r;
-   STBTT_assert(size < 0x40000000);
+   STBTT_assert(escalado < 0x40000000);
    r.data = (stbtt_uint8*) p;
-   r.size = (int) size;
+   r.escalado = (int) escalado;
    r.cursor = 0;
    return r;
 }
@@ -1032,9 +1032,9 @@ static stbtt__buf stbtt__new_buf(const void *p, size_t size)
 static stbtt__buf stbtt__buf_range(const stbtt__buf *b, int o, int s)
 {
    stbtt__buf r = stbtt__new_buf(NULL, 0);
-   if (o < 0 || s < 0 || o > b->size || s > b->size - o) return r;
+   if (o < 0 || s < 0 || o > b->escalado || s > b->escalado - o) return r;
    r.data = b->data + o;
-   r.size = s;
+   r.escalado = s;
    return r;
 }
 
@@ -1069,7 +1069,7 @@ static void stbtt__cff_skip_operand(stbtt__buf *b) {
    STBTT_assert(b0 >= 28);
    if (b0 == 30) {
       stbtt__buf_skip(b, 1);
-      while (b->cursor < b->size) {
+      while (b->cursor < b->escalado) {
          v = stbtt__buf_get8(b);
          if ((v & 0xF) == 0xF || (v >> 4) == 0xF)
             break;
@@ -1082,7 +1082,7 @@ static void stbtt__cff_skip_operand(stbtt__buf *b) {
 static stbtt__buf stbtt__dict_get(stbtt__buf *b, int key)
 {
    stbtt__buf_seek(b, 0);
-   while (b->cursor < b->size) {
+   while (b->cursor < b->escalado) {
       int start = b->cursor, end, op;
       while (stbtt__buf_peek8(b) >= 28)
          stbtt__cff_skip_operand(b);
@@ -1098,7 +1098,7 @@ static void stbtt__dict_get_ints(stbtt__buf *b, int key, int outcount, stbtt_uin
 {
    int i;
    stbtt__buf operands = stbtt__dict_get(b, key);
-   for (i = 0; i < outcount && operands.cursor < operands.size; i++)
+   for (i = 0; i < outcount && operands.cursor < operands.escalado; i++)
       out[i] = stbtt__cff_int(&operands);
 }
 
@@ -1280,7 +1280,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
          if (!fdselectoff) return 0;
          stbtt__buf_seek(&b, fdarrayoff);
          info->fontdicts = stbtt__cff_get_index(&b);
-         info->fdselect = stbtt__buf_range(&b, fdselectoff, b.size-fdselectoff);
+         info->fdselect = stbtt__buf_range(&b, fdselectoff, b.escalado-fdselectoff);
       }
 
       stbtt__buf_seek(&b, charstrings);
@@ -1436,7 +1436,7 @@ static int stbtt__GetGlyfOffset(const stbtt_fontinfo *info, int glyph_index)
 {
    int g1,g2;
 
-   STBTT_assert(!info->cff.size);
+   STBTT_assert(!info->cff.escalado);
 
    if (glyph_index >= info->numGlyphs) return -1; // glyph index out of range
    if (info->indexToLocFormat >= 2)    return -1; // unknown index->glyph map format
@@ -1456,7 +1456,7 @@ static int stbtt__GetGlyphInfoT2(const stbtt_fontinfo *info, int glyph_index, in
 
 STBTT_DEF int stbtt_GetGlyphBox(const stbtt_fontinfo *info, int glyph_index, int *x0, int *y0, int *x1, int *y1)
 {
-   if (info->cff.size) {
+   if (info->cff.escalado) {
       stbtt__GetGlyphInfoT2(info, glyph_index, x0, y0, x1, y1);
    } else {
       int g = stbtt__GetGlyfOffset(info, glyph_index);
@@ -1479,7 +1479,7 @@ STBTT_DEF int stbtt_IsGlyphEmpty(const stbtt_fontinfo *info, int glyph_index)
 {
    stbtt_int16 numberOfContours;
    int g;
-   if (info->cff.size)
+   if (info->cff.escalado)
       return stbtt__GetGlyphInfoT2(info, glyph_index, NULL, NULL, NULL, NULL) == 0;
    g = stbtt__GetGlyfOffset(info, glyph_index);
    if (g < 0) return 1;
@@ -1854,7 +1854,7 @@ static int stbtt__run_charstring(const stbtt_fontinfo *info, int glyph_index, st
 
    // this currently ignores the initial width value, which isn't needed if we have hmtx
    b = stbtt__cff_index_get(info->charstrings, glyph_index);
-   while (b.cursor < b.size) {
+   while (b.cursor < b.escalado) {
       i = 0;
       clear_stack = 1;
       b0 = stbtt__buf_get8(&b);
@@ -1970,7 +1970,7 @@ static int stbtt__run_charstring(const stbtt_fontinfo *info, int glyph_index, st
 
       case 0x0A: // callsubr
          if (!has_subrs) {
-            if (info->fdselect.size)
+            if (info->fdselect.escalado)
                subrs = stbtt__cid_get_glyph_subrs(info, glyph_index);
             has_subrs = 1;
          }
@@ -1981,7 +1981,7 @@ static int stbtt__run_charstring(const stbtt_fontinfo *info, int glyph_index, st
          if (subr_stack_height >= 10) return STBTT__CSERR("recursion limit");
          subr_stack[subr_stack_height++] = b;
          b = stbtt__get_subr(b0 == 0x0A ? subrs : info->gsubrs, v);
-         if (b.size == 0) return STBTT__CSERR("subr not found");
+         if (b.escalado == 0) return STBTT__CSERR("subr not found");
          b.cursor = 0;
          clear_stack = 0;
          break;
@@ -2133,7 +2133,7 @@ static int stbtt__GetGlyphInfoT2(const stbtt_fontinfo *info, int glyph_index, in
 
 STBTT_DEF int stbtt_GetGlyphShape(const stbtt_fontinfo *info, int glyph_index, stbtt_vertex **pvertices)
 {
-   if (!info->cff.size)
+   if (!info->cff.escalado)
       return stbtt__GetGlyphShapeTT(info, glyph_index, pvertices);
    else
       return stbtt__GetGlyphShapeT2(info, glyph_index, pvertices);
@@ -2279,7 +2279,7 @@ typedef struct stbtt__hheap
    int    num_remaining_in_head_chunk;
 } stbtt__hheap;
 
-static void *stbtt__hheap_alloc(stbtt__hheap *hh, size_t size, void *userdata)
+static void *stbtt__hheap_alloc(stbtt__hheap *hh, size_t escalado, void *userdata)
 {
    if (hh->first_free) {
       void *p = hh->first_free;
@@ -2287,8 +2287,8 @@ static void *stbtt__hheap_alloc(stbtt__hheap *hh, size_t size, void *userdata)
       return p;
    } else {
       if (hh->num_remaining_in_head_chunk == 0) {
-         int count = (size < 32 ? 2000 : size < 128 ? 800 : 100);
-         stbtt__hheap_chunk *c = (stbtt__hheap_chunk *) STBTT_malloc(sizeof(stbtt__hheap_chunk) + size * count, userdata);
+         int count = (escalado < 32 ? 2000 : escalado < 128 ? 800 : 100);
+         stbtt__hheap_chunk *c = (stbtt__hheap_chunk *) STBTT_malloc(sizeof(stbtt__hheap_chunk) + escalado * count, userdata);
          if (c == NULL)
             return NULL;
          c->next = hh->head;
@@ -2296,7 +2296,7 @@ static void *stbtt__hheap_alloc(stbtt__hheap *hh, size_t size, void *userdata)
          hh->num_remaining_in_head_chunk = count;
       }
       --hh->num_remaining_in_head_chunk;
-      return (char *) (hh->head) + size * hh->num_remaining_in_head_chunk;
+      return (char *) (hh->head) + escalado * hh->num_remaining_in_head_chunk;
    }
 }
 

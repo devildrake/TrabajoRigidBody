@@ -1530,15 +1530,15 @@ void ImFontAtlas::RenderCustomTexData(int pass, void* p_rects)
         {
             ImGuiMouseCursorData& cursor_data = GImGui->MouseCursorData[type];
             ImVec2 pos = cursor_datas[type][0] + ImVec2((float)r.x, (float)r.y);
-            const ImVec2 size = cursor_datas[type][1];
+            const ImVec2 escalado = cursor_datas[type][1];
             cursor_data.Type = type;
-            cursor_data.Size = size;
+            cursor_data.Size = escalado;
             cursor_data.HotOffset = cursor_datas[type][2];
             cursor_data.TexUvMin[0] = (pos) * tex_uv_scale;
-            cursor_data.TexUvMax[0] = (pos + size) * tex_uv_scale;
+            cursor_data.TexUvMax[0] = (pos + escalado) * tex_uv_scale;
             pos.x += TEX_DATA_W+1;
             cursor_data.TexUvMin[1] = (pos) * tex_uv_scale;
-            cursor_data.TexUvMax[1] = (pos + size) * tex_uv_scale;
+            cursor_data.TexUvMax[1] = (pos + escalado) * tex_uv_scale;
         }
     }
 }
@@ -1889,13 +1889,13 @@ const char* ImFont::CalcWordWrapPositionA(float scale, const char* text, const c
     return s;
 }
 
-ImVec2 ImFont::CalcTextSizeA(float size, float max_width, float wrap_width, const char* text_begin, const char* text_end, const char** remaining) const
+ImVec2 ImFont::CalcTextSizeA(float escalado, float max_width, float wrap_width, const char* text_begin, const char* text_end, const char** remaining) const
 {
     if (!text_end)
         text_end = text_begin + strlen(text_begin); // FIXME-OPT: Need to avoid this.
 
-    const float line_height = size;
-    const float scale = size / FontSize;
+    const float line_height = escalado;
+    const float scale = escalado / FontSize;
 
     ImVec2 text_size = ImVec2(0,0);
     float line_width = 0.0f;
@@ -1983,13 +1983,13 @@ ImVec2 ImFont::CalcTextSizeA(float size, float max_width, float wrap_width, cons
     return text_size;
 }
 
-void ImFont::RenderChar(ImDrawList* draw_list, float size, ImVec2 pos, ImU32 col, unsigned short c) const
+void ImFont::RenderChar(ImDrawList* draw_list, float escalado, ImVec2 pos, ImU32 col, unsigned short c) const
 {
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r') // Match behavior of RenderText(), those 4 codepoints are hard-coded.
         return;
     if (const Glyph* glyph = FindGlyph(c))
     {
-        float scale = (size >= 0.0f) ? (size / FontSize) : 1.0f;
+        float scale = (escalado >= 0.0f) ? (escalado / FontSize) : 1.0f;
         pos.x = (float)(int)pos.x + DisplayOffset.x;
         pos.y = (float)(int)pos.y + DisplayOffset.y;
         ImVec2 pos_tl(pos.x + glyph->X0 * scale, pos.y + glyph->Y0 * scale);
@@ -1999,7 +1999,7 @@ void ImFont::RenderChar(ImDrawList* draw_list, float size, ImVec2 pos, ImU32 col
     }
 }
 
-void ImFont::RenderText(ImDrawList* draw_list, float size, ImVec2 pos, ImU32 col, const ImVec4& clip_rect, const char* text_begin, const char* text_end, float wrap_width, bool cpu_fine_clip) const
+void ImFont::RenderText(ImDrawList* draw_list, float escalado, ImVec2 pos, ImU32 col, const ImVec4& clip_rect, const char* text_begin, const char* text_end, float wrap_width, bool cpu_fine_clip) const
 {
     if (!text_end)
         text_end = text_begin + strlen(text_begin); // ImGui functions generally already provides a valid text_end, so this is merely to handle direct calls.
@@ -2012,7 +2012,7 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, ImVec2 pos, ImU32 col
     if (y > clip_rect.w)
         return;
 
-    const float scale = size / FontSize;
+    const float scale = escalado / FontSize;
     const float line_height = FontSize * scale;
     const bool word_wrap_enabled = (wrap_width > 0.0f);
     const char* word_wrap_eol = NULL;

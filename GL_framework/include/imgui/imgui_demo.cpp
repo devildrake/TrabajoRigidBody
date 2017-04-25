@@ -998,20 +998,20 @@ void ImGui::ShowTestWindow(bool* p_open)
                 ImGui::EndGroup();
             }
             // Capture the group size and create widgets using the same size
-            ImVec2 size = ImGui::GetItemRectSize();
+            ImVec2 escalado = ImGui::GetItemRectSize();
             const float values[5] = { 0.5f, 0.20f, 0.80f, 0.60f, 0.25f };
-            ImGui::PlotHistogram("##values", values, IM_ARRAYSIZE(values), 0, NULL, 0.0f, 1.0f, size);
+            ImGui::PlotHistogram("##values", values, IM_ARRAYSIZE(values), 0, NULL, 0.0f, 1.0f, escalado);
 
-            ImGui::Button("ACTION", ImVec2((size.x - ImGui::GetStyle().ItemSpacing.x)*0.5f,size.y));
+            ImGui::Button("ACTION", ImVec2((escalado.x - ImGui::GetStyle().ItemSpacing.x)*0.5f,escalado.y));
             ImGui::SameLine();
-            ImGui::Button("REACTION", ImVec2((size.x - ImGui::GetStyle().ItemSpacing.x)*0.5f,size.y));
+            ImGui::Button("REACTION", ImVec2((escalado.x - ImGui::GetStyle().ItemSpacing.x)*0.5f,escalado.y));
             ImGui::EndGroup();
             ImGui::SameLine();
 
-            ImGui::Button("LEVERAGE\nBUZZWORD", size);
+            ImGui::Button("LEVERAGE\nBUZZWORD", escalado);
             ImGui::SameLine();
 
-            ImGui::ListBoxHeader("List", size);
+            ImGui::ListBoxHeader("List", escalado);
             ImGui::Selectable("Selected", true);
             ImGui::Selectable("Not Selected", false);
             ImGui::ListBoxFooter();
@@ -1158,15 +1158,15 @@ void ImGui::ShowTestWindow(bool* p_open)
 
         if (ImGui::TreeNode("Clipping"))
         {
-            static ImVec2 size(100, 100), offset(50, 20);
+            static ImVec2 escalado(100, 100), offset(50, 20);
             ImGui::TextWrapped("On a per-widget basis we are occasionally clipping text CPU-side if it won't fit in its frame. Otherwise we are doing coarser clipping + passing a scissor rectangle to the renderer. The system is designed to try minimizing both execution and CPU/GPU rendering cost.");
-            ImGui::DragFloat2("size", (float*)&size, 0.5f, 0.0f, 200.0f, "%.0f");
+            ImGui::DragFloat2("size", (float*)&escalado, 0.5f, 0.0f, 200.0f, "%.0f");
             ImGui::TextWrapped("(Click and drag)");
             ImVec2 pos = ImGui::GetCursorScreenPos();
-            ImVec4 clip_rect(pos.x, pos.y, pos.x+size.x, pos.y+size.y);
-            ImGui::InvisibleButton("##dummy", size);
+            ImVec4 clip_rect(pos.x, pos.y, pos.x+escalado.x, pos.y+escalado.y);
+            ImGui::InvisibleButton("##dummy", escalado);
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging()) { offset.x += ImGui::GetIO().MouseDelta.x; offset.y += ImGui::GetIO().MouseDelta.y; }
-            ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x+size.x,pos.y+size.y), ImColor(90,90,120,255));
+            ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x+escalado.x,pos.y+escalado.y), ImColor(90,90,120,255));
             ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize()*2.0f, ImVec2(pos.x+offset.x,pos.y+offset.y), ImColor(255,255,255,255), "Line 1 hello\nLine 2 clip me!", NULL, 0.0f, &clip_rect);
             ImGui::TreePop();
         }
@@ -2388,12 +2388,12 @@ struct ExampleAppLog
 
     void    AddLog(const char* fmt, ...) IM_PRINTFARGS(2)
     {
-        int old_size = Buf.size();
+        int old_size = Buf.escalado();
         va_list args;
         va_start(args, fmt);
         Buf.appendv(fmt, args);
         va_end(args);
-        for (int new_size = Buf.size(); old_size < new_size; old_size++)
+        for (int new_size = Buf.escalado(); old_size < new_size; old_size++)
             if (Buf[old_size] == '\n')
                 LineOffsets.push_back(old_size);
         ScrollToBottom = true;
@@ -2589,7 +2589,7 @@ static void ShowExampleAppLongText(bool* p_open)
     static int lines = 0;
     ImGui::Text("Printing unusually long amount of text.");
     ImGui::Combo("Test type", &test_type, "Single call to TextUnformatted()\0Multiple calls to Text(), clipped manually\0Multiple calls to Text(), not clipped\0");
-    ImGui::Text("Buffer contents: %d lines, %d bytes", lines, log.size());
+    ImGui::Text("Buffer contents: %d lines, %d bytes", lines, log.escalado());
     if (ImGui::Button("Clear")) { log.clear(); lines = 0; }
     ImGui::SameLine();
     if (ImGui::Button("Add 1000 lines"))
