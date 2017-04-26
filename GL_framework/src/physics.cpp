@@ -17,6 +17,7 @@ namespace Cube {
 	extern void  setupCube();
 	extern void  drawCube();
 	extern glm::mat4 modelMat;
+	extern float cubeVerts[];
 }
 
 bool start = false;
@@ -28,17 +29,43 @@ glm::vec3 gravity = glm::vec3(0,-9.8,0);
 
 class BoxObj {
 public:
+
+	class Plane {
+	public:
+		float d;
+		glm::vec3 n;
+		Plane() {
+			d = n.x = n.y = n.z = 0;
+		}
+		Plane(float nx, float ny, float nz, float d) {
+			this->n.x = nx;
+			this->n.y = ny;
+			this->n.z = nz;
+			this->d = d;
+		}
+		void SetPlaneStats(float nx, float ny, float nz, float d) {
+			n.x = nx;
+			n.y = ny;
+			n.z = nz;
+			this->d = d;
+		}
+	};
+	Plane planos[6];
+
+
 	//Constantes
 	glm::mat3 iBody;
 	float mass;
 
 	//Variables
 	glm::vec3 orgPos;
+	glm::mat4 prevMod;
 	glm::vec3 pos;
-	glm::mat3 rotation;
+	glm::quat quaternion;
 	glm::vec3 linealMom;
 	glm::vec3 angMom;
 	glm::vec3 torque;
+	glm::mat3 rotation;
 	int escalado;
 
 	//REINICIO
@@ -70,9 +97,6 @@ public:
 		torque = glm::vec3(0);
 	}
 
-
-
-
 	//CONSTRUCTOR
 	BoxObj(glm::vec3 orgPos, int s){
 		this->orgPos = orgPos;
@@ -82,81 +106,117 @@ public:
 
 		//iBody es la misma en las tres partes de la matriz porque es un cubo y los lados son iguales
 		iBody[0][0] = iBody[1][1] = iBody[2][2] = (1.0f / 12.0f)*mass*(escalado*escalado + escalado*escalado);
+		planos[0].SetPlaneStats(0.0f, 1.0f, 0.0f, 0.0f); // Parte abajo del cubo
+		planos[1].SetPlaneStats(0.0f, 0.0f, -1.0f, -5.0f);
+		planos[2].SetPlaneStats(-1.0f, 0.0f, 0.0f, 5.0f);
+		planos[3].SetPlaneStats(0.0f, 0.0f, 1.0f, -5.0f);
+		planos[4].SetPlaneStats(1.0f, 0.0f, 0.0f, 5.0f);
+		planos[5].SetPlaneStats(0.0f, -1.0f, 0.0f, 10.0f);
 	}
 
 	//ACTUALIZACIÓN DEL PINTADO
 	void UpdateDraw() {
-		Cube::modelMat = glm::mat4(1.f);
-		Cube::modelMat = glm::translate(Cube::modelMat, pos);
-	/*	glm::mat4 temp;
 
-		for (int i = 0; i < 2; i++) {
-			for (int j = 0; j < 2; j++) {
-				temp[i][j] = rotation[i][j];
+		prevMod = Cube::modelMat;
+
+		Cube::modelMat = glm::mat4(1.f);
+
+		Cube::modelMat = glm::translate(Cube::modelMat, pos);
+
+		glm::mat4 tempRot;
+
+		tempRot = rotation;
+
+		Cube::modelMat *= tempRot;
+
+		Cube::modelMat = glm::scale(Cube::modelMat, glm::vec3(escalado, escalado, escalado));
+
+	}
+
+	void CheckCol(float dt, glm::vec3 prevVert[], glm::vec3 curVert[]) {
+		for (int j = 0; j < 8; j++) {
+			for (int i = 0; i < 6; i++) {
+				if ((glm::dot(planos[i].n, *prevVert)+planos[i].d)*(glm::dot(planos[i].n,*curVert)+planos[i].d)<=0) {
+					//std::cout << "Po ha shocao" << std::endl;
+				}
 			}
 		}
-
-		Cube::modelMat *= temp;
-*/
-		Cube::modelMat = glm::scale(Cube::modelMat, glm::vec3(escalado, escalado, escalado));
 	}
 
 	//ACTUALIZADO
 	void Update(float dt) {
-		
-		linealMom = linealMom + dt*(gravity*mass);
-		angMom = angMom + dt*torque;
+		UpdatePosAndRot(dt);
+		int contador = 0;
+		float vertices[24];
+		glm::vec3 verticesAnteriores[8];
+		glm::vec3 verticesActuales[8];
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 3; j++) {
+				vertices[contador] = Cube::cubeVerts[i * 6 + j];
+				contador++;
 
-		glm::vec3 velocity = linealMom/mass;
-		pos = pos + velocity*dt;
+//PROBLEMA LOCALIZADO AQUÍ JDOEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
 
-			//std::cout << iBody[0][0] << " " << iBody[0][1]<<" "<< iBody[0][2] << "\n";
-			//std::cout << iBody[1][0] << " " << iBody[1][1] << " " << iBody[1][2]<< "\n";
-			//std::cout << iBody[2][0] << " " << iBody[2][1] << " " << iBody[2][2] << "\n";
+			}
+		}
+		int contador2 = 0;
+		for (int i = 0; i < 24; i+=3) {
+
+//			for(int k = 0;k<3;k++){
+//				for (int j = 0; j < 3; j++){
+//				std::cout << prevMod[k][j] << " ";
+//}
+//				std::cout<<"\n";
+//			}
+			verticesAnteriores[contador2] = prevMod * (glm::vec4(vertices[i], vertices[i + 1], vertices[i + 2], 1));
+			contador2++;
+		}
+
+		contador2 = 0;
+		for (int i = 0; i < 24; i += 3) {
+			
+			//std::cout << verticesActuales[i].x << " " << verticesActuales[i].y << " " << verticesActuales[i].z << std::endl;
+
+			verticesActuales[contador2] = Cube::modelMat * (glm::vec4(vertices[i], vertices[i + 1], vertices[i + 2], 1));
+			contador2++;
+		}
+
+		for (int i = 0; i < 24; i++) {
+			//std::cout << verticesActuales[i].x << " " << verticesActuales[i].y << " " << verticesActuales[i].z << std::endl;
+
+		}
 
 
-		//std::cout << glm::inverse(iBody)[0][0] << " " << glm::inverse(iBody)[0][1]<<" "<< glm::inverse(iBody)[0][2] << "\n";
-		//std::cout << glm::inverse(iBody)[1][0] << " " << glm::inverse(iBody)[1][1] << " " << glm::inverse(iBody)[1][2]<< "\n";
-		//std::cout << glm::inverse(iBody)[2][0] << " " << glm::inverse(iBody)[2][1] << " " << glm::inverse(iBody)[2][2] << "\n";
-
-
-		std::cout << rotation[0][0] << " " << rotation[0][1]<<" "<< rotation[0][2] << "\n";
-		std::cout << rotation[1][0] << " " << rotation[1][1] << " " << rotation[1][2]<< "\n";
-		std::cout << rotation[2][0] << " " << rotation[2][1] << " " << rotation[2][2] << "\n";
-
-			glm::mat3 inverseInertia = rotation * glm::inverse(iBody)*glm::transpose(rotation);
-
-		//std::cout << inverseInertia[0][0] << " " << inverseInertia[0][1]<<" "<< inverseInertia[0][2] << "\n";
-		//std::cout << inverseInertia[1][0] << " " << inverseInertia[1][1] << " " << inverseInertia[1][2]<< "\n";
-		//std::cout << inverseInertia[2][0] << " " << inverseInertia[2][1] << " " << inverseInertia[2][2] << "\n";
-
-
-		glm::vec3 angularVelocity = inverseInertia * glm::vec3(angMom.x, angMom.y, angMom.z);
-
-		//std::cout << angularVelocity.x << " " << angularVelocity.y << " " << angularVelocity.z << std::endl;
-
-		//AL DECLARAR MATRICES EN GLM CON EL CONSTRUCTOR, RECIBE LA TRASPOSADA, ES DECIR SI QUIERES PONER UNA MATRIZ DIRECTAMENTE, LA DECLARAS TRASPOSADA
-		glm::mat3 angularMatrix{0, angularVelocity.z, -angularVelocity.y,
-								-angularVelocity.z, 0,angularVelocity.x,
-								angularVelocity.y,-angularVelocity.x,0 };
-
-		rotation = rotation + dt*(angularMatrix*rotation);
-
-		//std::cout << angularMatrix[0][0] << " " << angularMatrix[0][1] << " " << angularMatrix[0][2] << "\n";
-		//std::cout << angularMatrix[1][0] << " " << angularMatrix[1][1] << " " << angularMatrix[1][2] << "\n";
-		//std::cout << angularMatrix[2][0] << " " << angularMatrix[2][1] << " " << angularMatrix[2][2] << "\n";
-
-		//std::cout << rotation[0][0] << " " << rotation[0][1]<<" "<< rotation[0][2] << "\n";
-		//std::cout << rotation[1][0] << " " << rotation[1][1] << " " << rotation[1][2]<< "\n";
-		//std::cout << rotation[2][0] << " " << rotation[2][1] << " " << rotation[2][2] << "\n";
+		CheckCol(dt,verticesAnteriores,verticesActuales);
 
 		UpdateDraw();
 	}
+
+
+
+	void UpdatePosAndRot(float dt) {
+		linealMom = linealMom + dt*(gravity*mass);
+		angMom = angMom + dt*torque;
+		glm::vec3 velocity = linealMom / mass;
+		pos = pos + velocity*dt;
+		glm::mat3 inverseInertia = rotation * glm::inverse(iBody)*glm::transpose(rotation);
+		glm::vec3 angularVelocity = inverseInertia * glm::vec3(angMom.x, angMom.y, angMom.z);
+		//AL DECLARAR MATRICES EN GLM CON EL CONSTRUCTOR, RECIBE LA TRASPOSADA, ES DECIR SI QUIERES PONER UNA MATRIZ DIRECTAMENTE, LA DECLARAS TRASPOSADA
+		glm::mat3 angularMatrix{ 0, angularVelocity.z, -angularVelocity.y,
+			-angularVelocity.z, 0,angularVelocity.x,
+			angularVelocity.y,-angularVelocity.x,0 };
+
+		glm::quat angularSpeed4(0, angularVelocity.x, angularVelocity.y, angularVelocity.z);
+		quaternion = quaternion + (angularSpeed4 * quaternion*0.5f)*dt;
+		quaternion = glm::normalize(quaternion);
+		rotation = glm::mat4_cast(quaternion);
+	}
+
 };
 
 
 
-BoxObj 	box = BoxObj(glm::vec3(0, 1, 0),2);
+BoxObj 	box = BoxObj(glm::vec3(0, 2, 0),2);
 
 void GUI() {
 	{	//FrameRate

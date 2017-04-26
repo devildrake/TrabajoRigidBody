@@ -860,16 +860,21 @@ namespace Cube {
 	GLubyte cubeIdx[] = {
 		1,3,0, //SWALLOW
 		1,2,3,	//SWALLOW
+
 		1,0,4,	//CARA TRASERA
 		4,5,1,	//CARA TRASERA
+
 		3,2,6,	//CARA FRONTAL
 		6,7,3, //CARA FRONTAL
+
 		7,4,0,	//CARA IZQUIERDA
 		0,3,7,//CARA IZQUIERDA
+
 		5,4,7, //CARA SUPERIOR
 		7,6,5, //CARA SUPERIOR
-		1,5,6,
-		6,2,1
+
+		1,5,6, //CARA DERECHA
+		6,2,1  //CARA DERECHA
 	};
 
 
