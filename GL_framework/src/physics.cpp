@@ -23,6 +23,7 @@ namespace Cube {
 bool start = false;
 bool restart = true;
 bool show_test_window = false;
+float epsilon;
 
 
 glm::vec3 gravity = glm::vec3(0,-9.8,0);
@@ -56,7 +57,6 @@ public:
 	//Constantes
 	glm::mat3 iBody;
 	float mass;
-
 	//Variables
 	glm::vec3 orgPos;
 	glm::mat4 prevMod;
@@ -67,7 +67,7 @@ public:
 	glm::vec3 torque;
 	glm::mat3 rotation;
 	int escalado;
-
+	glm::mat3 inverseInertia;
 	//REINICIO
 	void Restart(float dt) {
 
@@ -89,7 +89,7 @@ public:
 		forcePos.y = (float)rand() / RAND_MAX * 2 - 1;
 		forcePos.z = (float)rand() / RAND_MAX * 2 - 1;
 
-		std::cout << tempForce.x << " " << tempForce.y << " " << tempForce.z << "\n";
+		//std::cout << tempForce.x << " " << tempForce.y << " " << tempForce.z << "\n";
 
 		torque = glm::cross(forcePos-pos,tempForce);
 		angMom = angMom+torque*dt;
@@ -117,11 +117,13 @@ public:
 	//ACTUALIZACIÓN DEL PINTADO
 	void UpdateDraw() {
 
-		prevMod = Cube::modelMat;
 
 		Cube::modelMat = glm::mat4(1.f);
 
 		Cube::modelMat = glm::translate(Cube::modelMat, pos);
+
+		prevMod = Cube::modelMat;
+
 
 		glm::mat4 tempRot;
 
@@ -133,11 +135,44 @@ public:
 
 	}
 
+	void Bounce(Plane plano,float dt, glm::vec3 verticeEnContacto) {
+		float velocidadRelativa;
+		glm::vec3 derivadaPA;
+
+		derivadaPA  = linealMom / mass + glm::cross(( inverseInertia * glm::vec3(angMom.x, angMom.y, angMom.z)),glm::vec3(Cube::modelMat*glm::vec4(verticeEnContacto,1)) - glm::vec3((Cube::modelMat*glm::vec4(0,0,0,1))));
+
+		velocidadRelativa = glm::dot(plano.n,derivadaPA);
+
+		glm::vec3 posicionDeVertice = glm::vec3(Cube::modelMat*glm::vec4(verticeEnContacto.x, verticeEnContacto.y, verticeEnContacto.z, 1.0f));
+
+		glm::vec3 parentesis1 = glm::cross(posicionDeVertice,plano.n);
+		glm::vec3 parentesis2 = inverseInertia*parentesis1;
+		glm::vec3 parentesis3 = glm::cross(parentesis2,posicionDeVertice);
+
+		float laJota = (-(1 + epsilon)*velocidadRelativa) / (1 / mass + glm::dot(plano.n,parentesis3));
+		
+		glm::vec3 vecJota = laJota*plano.n;
+
+		glm::vec3 torqueNuevo = glm::cross(posicionDeVertice,vecJota);
+
+		linealMom += vecJota;
+
+		angMom += torqueNuevo;
+
+	}
+
 	void CheckCol(float dt, glm::vec3 prevVert[], glm::vec3 curVert[]) {
 		for (int j = 0; j < 8; j++) {
 			for (int i = 0; i < 6; i++) {
-				if ((glm::dot(planos[i].n, *prevVert)+planos[i].d)*(glm::dot(planos[i].n,*curVert)+planos[i].d)<=0) {
-					//std::cout << "Po ha shocao" << std::endl;
+			if ((glm::dot(planos[i].n, prevVert[j])+planos[i].d)*(glm::dot(planos[i].n,curVert[j])+planos[i].d)<=0) {
+
+				//	if ((glm::dot(planos[i].n, *prevVert) + planos[i].d)*(glm::dot(planos[i].n, *curVert) + planos[i].d) <= 0) {
+
+			//	std::cout << "Colision en el vertice "<< j << std::endl;
+
+				
+				Bounce(planos[i],dt,curVert[j]);
+
 				}
 			}
 		}
@@ -154,8 +189,6 @@ public:
 			for (int j = 0; j < 3; j++) {
 				vertices[contador] = Cube::cubeVerts[i * 6 + j];
 				contador++;
-
-//PROBLEMA LOCALIZADO AQUÍ JDOEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
 
 			}
 		}
@@ -199,7 +232,7 @@ public:
 		angMom = angMom + dt*torque;
 		glm::vec3 velocity = linealMom / mass;
 		pos = pos + velocity*dt;
-		glm::mat3 inverseInertia = rotation * glm::inverse(iBody)*glm::transpose(rotation);
+		inverseInertia = rotation * glm::inverse(iBody)*glm::transpose(rotation);
 		glm::vec3 angularVelocity = inverseInertia * glm::vec3(angMom.x, angMom.y, angMom.z);
 		//AL DECLARAR MATRICES EN GLM CON EL CONSTRUCTOR, RECIBE LA TRASPOSADA, ES DECIR SI QUIERES PONER UNA MATRIZ DIRECTAMENTE, LA DECLARAS TRASPOSADA
 		glm::mat3 angularMatrix{ 0, angularVelocity.z, -angularVelocity.y,
@@ -216,11 +249,12 @@ public:
 
 
 
-BoxObj 	box = BoxObj(glm::vec3(0, 2, 0),2);
+BoxObj 	box = BoxObj(glm::vec3(0, 5, 0),2);
 
 void GUI() {
 	{	//FrameRate
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::SliderFloat("coeficienteElastico", &epsilon, 0, 1);
 		restart = ImGui::Button("Restart");
 		//TODO
 	}
@@ -233,6 +267,7 @@ void GUI() {
 }
 
 void PhysicsInit() {
+	epsilon = 1;
 	//TODO
 }
 void PhysicsUpdate(float dt) {
