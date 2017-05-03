@@ -21,9 +21,11 @@ namespace Cube {
 }
 
 bool start = false;
+bool slowMo = false;
 bool restart = true;
 bool show_test_window = false;
 float epsilon;
+float vertices[24];
 
 
 glm::vec3 gravity = glm::vec3(0,-9.8,0);
@@ -68,6 +70,8 @@ public:
 	glm::mat3 rotation;
 	int escalado;
 	glm::mat3 inverseInertia;
+	glm::vec3 verticesAnteriores[8];
+	glm::vec3 verticesActuales[8];
 	//REINICIO
 	void Restart(float dt) {
 
@@ -107,11 +111,11 @@ public:
 		//iBody es la misma en las tres partes de la matriz porque es un cubo y los lados son iguales
 		iBody[0][0] = iBody[1][1] = iBody[2][2] = (1.0f / 12.0f)*mass*(escalado*escalado + escalado*escalado);
 		planos[0].SetPlaneStats(0.0f, 1.0f, 0.0f, 0.0f); // Parte abajo del cubo
-		planos[1].SetPlaneStats(0.0f, 0.0f, -1.0f, -5.0f);
-		planos[2].SetPlaneStats(-1.0f, 0.0f, 0.0f, 5.0f);
-		planos[3].SetPlaneStats(0.0f, 0.0f, 1.0f, -5.0f);
-		planos[4].SetPlaneStats(1.0f, 0.0f, 0.0f, 5.0f);
-		planos[5].SetPlaneStats(0.0f, -1.0f, 0.0f, 10.0f);
+		planos[1].SetPlaneStats(0.0f, 0.0f, -1.0f, -5.0f); //Parte del fondo
+		planos[2].SetPlaneStats(-1.0f, 0.0f, 0.0f, 5.0f); //Parte izquierda
+		planos[3].SetPlaneStats(0.0f, 0.0f, 1.0f, -5.0f); //Parte de delante
+		planos[4].SetPlaneStats(1.0f, 0.0f, 0.0f, 5.0f); //Parte derechas
+		planos[5].SetPlaneStats(0.0f, -1.0f, 0.0f, 10.0f); //Parte de arriba
 	}
 
 	//ACTUALIZACIÓN DEL PINTADO
@@ -164,14 +168,17 @@ public:
 	void CheckCol(float dt, glm::vec3 prevVert[], glm::vec3 curVert[]) {
 		for (int j = 0; j < 8; j++) {
 			for (int i = 0; i < 6; i++) {
+			
 			if ((glm::dot(planos[i].n, prevVert[j])+planos[i].d)*(glm::dot(planos[i].n,curVert[j])+planos[i].d)<=0) {
 
-				//	if ((glm::dot(planos[i].n, *prevVert) + planos[i].d)*(glm::dot(planos[i].n, *curVert) + planos[i].d) <= 0) {
+				//glm::mat4 temp;
 
-			//	std::cout << "Colision en el vertice "<< j << std::endl;
+				simulateEulerStep(dt,i,j);
 
-				
-				Bounce(planos[i],dt,curVert[j]);
+				Bounce(planos[i], dt, curVert[j]);
+
+				//Cube::modelMat = temp;
+
 
 				}
 			}
@@ -180,18 +187,21 @@ public:
 
 	//ACTUALIZADO
 	void Update(float dt) {
+		if(slowMo)
+		dt = dt / 8;
+
+
 		UpdatePosAndRot(dt);
 		int contador = 0;
-		float vertices[24];
-		glm::vec3 verticesAnteriores[8];
-		glm::vec3 verticesActuales[8];
+
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 3; j++) {
 				vertices[contador] = Cube::cubeVerts[i * 6 + j];
 				contador++;
-
 			}
 		}
+
+
 		int contador2 = 0;
 		for (int i = 0; i < 24; i+=3) {
 
@@ -245,6 +255,83 @@ public:
 		rotation = glm::mat4_cast(quaternion);
 	}
 
+	void simulateEulerStep(float dt,int planoId,int vertId) {
+		float newDT = dt/2;
+		glm::vec3 linealMomL;
+		glm::vec3 angMomL;
+		glm::mat3 inverseInertiaL = inverseInertia;
+		glm::quat quaternionL = quaternion;
+		glm::mat4 rotationL = rotation;
+		glm::vec3 posL;
+		for (int i = 0; i < 5; i++) {
+			linealMomL = linealMom;
+			linealMomL = linealMomL + newDT*(gravity*mass);
+			angMomL = angMom + newDT*torque;
+				glm::vec3 velocity = linealMomL / mass;
+				posL = pos + velocity*newDT;
+				inverseInertiaL = rotation * glm::inverse(iBody)*glm::transpose(rotation);
+				glm::vec3 angularVelocity = inverseInertia * glm::vec3(angMom.x, angMom.y, angMom.z);
+				//AL DECLARAR MATRICES EN GLM CON EL CONSTRUCTOR, RECIBE LA TRASPOSADA, ES DECIR SI QUIERES PONER UNA MATRIZ DIRECTAMENTE, LA DECLARAS TRASPOSADA
+				glm::mat3 angularMatrix{ 0, angularVelocity.z, -angularVelocity.y,
+					-angularVelocity.z, 0,angularVelocity.x,
+					angularVelocity.y,-angularVelocity.x,0 };
+
+				glm::quat angularSpeed4(0, angularVelocity.x, angularVelocity.y, angularVelocity.z);
+				quaternionL = quaternion + (angularSpeed4 * quaternion*0.5f)*newDT;
+				quaternionL = glm::normalize(quaternionL);
+				rotationL = glm::mat4_cast(quaternionL);
+			
+				glm::vec3 verticeLocal = glm::vec3(vertices[vertId*3], vertices[vertId*3 + 1], vertices[vertId*3 + 2]);
+
+				glm::mat4 modelMatL;
+
+				modelMatL = glm::translate(modelMatL, posL);
+
+				glm::mat4 tempRot;
+
+				tempRot = rotationL;
+
+				modelMatL *= tempRot;
+
+				modelMatL = glm::scale(modelMatL, glm::vec3(escalado, escalado, escalado));
+
+				verticeLocal = modelMatL * glm::vec4(verticeLocal,1);
+
+				if ((glm::dot(planos[planoId].n, verticesAnteriores[vertId]) + planos[planoId].d)*(glm::dot(planos[planoId].n, verticeLocal) + planos[planoId].d) <= 0) {
+					newDT -= newDT / 2;
+					//std::cout << "resta\n";
+				}
+				else {
+					newDT += newDT / 2;
+					//std::cout << "suma\n";
+				}
+		}
+
+		pos = posL;
+		angMom = angMomL;
+		linealMom = linealMomL;
+		quaternion = quaternionL;
+		rotation = rotationL;
+		inverseInertia = inverseInertiaL;
+
+		Cube::modelMat = glm::translate(Cube::modelMat, posL);
+
+		glm::mat4 tempRot;
+
+		tempRot = rotationL;
+
+		Cube::modelMat *= tempRot;
+
+		Cube::modelMat = glm::scale(Cube::modelMat, glm::vec3(escalado, escalado, escalado));
+
+
+
+		
+
+		UpdateDraw();
+		//return modelMat;
+	}
+
 };
 
 
@@ -256,6 +343,7 @@ void GUI() {
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::SliderFloat("coeficienteElastico", &epsilon, 0, 1);
 		restart = ImGui::Button("Restart");
+		slowMo = ImGui::Button("Slow Motion");
 		//TODO
 	}
 
