@@ -224,13 +224,39 @@ public:
 			contador2++;
 		}
 
-		for (int i = 0; i < 24; i++) {
-			//std::cout << verticesActuales[i].x << " " << verticesActuales[i].y << " " << verticesActuales[i].z << std::endl;
+		//for (int i = 0; i < 24; i++) {
+		//	//std::cout << verticesActuales[i].x << " " << verticesActuales[i].y << " " << verticesActuales[i].z << std::endl;
 
+		//}
+
+		for (int i = 0; i < 8; i++) {
+			if (verticesActuales[i].x > 5) {
+				float offsetX = 5 - verticesActuales[i].x;
+			}
+			else if (verticesActuales[i].x < -5) {
+				float offsetX = -5 + verticesActuales[i].x;
+			}
+
+			if (verticesActuales[i].y > 5) {
+				float offsetY = 5 - verticesActuales[i].y;
+
+			}
+			else if (verticesActuales[i].y < -5) {
+				float offsetY =- 5 - verticesActuales[i].y;
+			}
+			if (verticesActuales[i].z > 5) {
+				float offsetZ = 5 - verticesActuales[i].z;
+
+			}	else if (verticesActuales[i].z < -5) {
+				float offsetZ = - 5 - verticesActuales[i].z;
+
+			}
 		}
 
 
 		CheckCol(dt,verticesAnteriores,verticesActuales);
+
+
 
 		UpdateDraw();
 	}
