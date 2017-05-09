@@ -257,6 +257,7 @@ public:
 
 	void simulateEulerStep(float dt,int planoId,int vertId) {
 		float newDT = dt/2;
+		float trackDT = dt / 2;
 		glm::vec3 linealMomL;
 		glm::vec3 angMomL;
 		glm::mat3 inverseInertiaL = inverseInertia;
@@ -264,6 +265,7 @@ public:
 		glm::mat4 rotationL = rotation;
 		glm::vec3 posL;
 		for (int i = 0; i < 5; i++) {
+			trackDT = trackDT / 2;
 			linealMomL = linealMom;
 			linealMomL = linealMomL + newDT*(gravity*mass);
 			angMomL = angMom + newDT*torque;
@@ -298,11 +300,11 @@ public:
 				verticeLocal = modelMatL * glm::vec4(verticeLocal,1);
 
 				if ((glm::dot(planos[planoId].n, verticesAnteriores[vertId]) + planos[planoId].d)*(glm::dot(planos[planoId].n, verticeLocal) + planos[planoId].d) <= 0) {
-					newDT -= newDT / 2;
+					newDT -= trackDT;
 					//std::cout << "resta\n";
 				}
 				else {
-					newDT += newDT / 2;
+					newDT += trackDT;
 					//std::cout << "suma\n";
 				}
 		}
