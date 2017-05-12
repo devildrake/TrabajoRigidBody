@@ -20,6 +20,7 @@ namespace Cube {
 	extern float cubeVerts[];
 }
 
+bool collisions = false;
 bool start = false;
 bool slowMo = false;
 bool restart = true;
@@ -253,7 +254,7 @@ public:
 			}
 		}
 
-
+		if(collisions)
 		CheckCol(dt,verticesAnteriores,verticesActuales);
 
 
@@ -370,6 +371,7 @@ void GUI() {
 	{	//FrameRate
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::SliderFloat("coeficienteElastico", &epsilon, 0, 1);
+		ImGui::Checkbox("Colisiones",&collisions);
 		restart = ImGui::Button("Restart");
 		slowMo = ImGui::Button("Slow Motion");
 		//TODO
@@ -383,6 +385,7 @@ void GUI() {
 }
 
 void PhysicsInit() {
+	collisions = true;
 	epsilon = 1;
 	//TODO
 }

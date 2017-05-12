@@ -1,0 +1,15 @@
+Hay una resolución correcta de la fuerza inicial al cubo, la cual provoca un giro y velocidad inicial
+aleatorios, todas las variables se manejan a través del método Update de la clase BoxObj, la cual tiene 
+una clase dentro, representando los planos, para más adelante realizar los calculos relevantes a las
+colisones, como elementos tweekeables tenemos el hecho de poder poner a cámara lenta la escena con 
+el boton slow motion, se puede variar el coeficiente elástico de colisión de la caja, así como se puede
+reiniciar la simulación con el botón restart, por último se pueden deshabilitar las colisiones para 
+observar el avance del cubo en el espacio con la checkBox Colisiones.
+
+La resolución de colisiones es correcta, y se ha intentado realizar una búsqueda binaria variando el 
+tiempo entre la posicion en coordenadas de mundo de los vertices del cubo en un frame A fijo, y en un frame
+B, el tiempo sobre el cual se calculan posiciones varia, se hace una búsqueda binaria 5 veces, pero
+por falta de precisión o mala implementación del propio método de busqueda binaria, la resolución de 
+colisiones, tanto con el plano del suelo del cubo como con las paredes del mismo,
+aunque actúa aparentemente cuando debería, lo hace de una forma incorrecta, rebotando en la mayoría de casos
+de una forma extraña. 
